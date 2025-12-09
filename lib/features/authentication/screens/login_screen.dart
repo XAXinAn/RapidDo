@@ -14,8 +14,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   late TextEditingController _loginInputController;
-  bool _isEmailMode = false; // State to track login mode
-  bool _isRegisterMode = false; // State to track register mode
+  bool _isEmailMode = false;
+  bool _isRegisterMode = false;
 
   @override
   void initState() {
@@ -42,7 +42,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
-        // Reverted to the original light gradient background
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -78,33 +77,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const Spacer(flex: 2),
-                AnimatedSwitcher(
-                  duration: animationDuration,
-                  child: TextField(
-                    key: ValueKey<String>(_isRegisterMode
-                        ? 'register'
-                        : (_isEmailMode ? 'email' : 'phone')),
-                    controller: _loginInputController,
-                    keyboardType: _isRegisterMode
-                        ? TextInputType.phone
-                        : (_isEmailMode
-                            ? TextInputType.emailAddress
-                            : TextInputType.phone),
-                    style: const TextStyle(fontSize: 16),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30.0),
-                        borderSide: BorderSide.none,
-                      ),
-                      hintText: _isRegisterMode
-                          ? '请输入手机号'
-                          : (_isEmailMode ? '请输入邮箱' : '请输入手机号'),
-                      hintStyle: TextStyle(color: Colors.grey[500]),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 16),
+                TextField(
+                  controller: _loginInputController,
+                  keyboardType: _isEmailMode
+                      ? TextInputType.emailAddress
+                      : TextInputType.phone,
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.75),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                      borderSide: BorderSide.none,
                     ),
+                    hintText: _isEmailMode ? '请输入邮箱' : '请输入手机号',
+                    hintStyle: TextStyle(color: Colors.black54),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -116,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         MaterialPageRoute(
                           builder: (context) => VerificationCodeScreen(
                             loginIdentifier: _loginInputController.text,
-                            isEmail: _isRegisterMode ? false : _isEmailMode,
+                            isEmail: _isEmailMode,
                           ),
                         ),
                       );
@@ -124,10 +113,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const Spacer(flex: 3),
-                AnimatedOpacity(
-                  opacity: _isRegisterMode ? 0.0 : 1.0,
-                  duration: animationDuration,
-                  child: Row(
+                if (!_isRegisterMode)
+                  Row(
                     children: [
                       Expanded(
                         child: _isEmailMode
@@ -159,7 +146,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                ),
                 const Spacer(flex: 1),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
