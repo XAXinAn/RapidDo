@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:jisu_calendar/features/authentication/screens/login_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
