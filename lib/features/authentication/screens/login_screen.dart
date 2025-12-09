@@ -30,19 +30,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _loginWithWeChat() {
-    // TODO: Implement actual WeChat login logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('正在跳转至微信授权...')),
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+      (Route<dynamic> route) => false,
     );
-    // Simulate a successful login after a delay
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (Route<dynamic> route) => false,
-        );
-      }
-    });
   }
 
   @override
@@ -51,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       body: Container(
+        // Reverted to the original light gradient background
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -69,13 +61,11 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 const Spacer(flex: 2),
-                // App Icon
                 Image.asset(
                   'assets/icon.png',
                   height: 100,
                   width: 100,
                 ),
-                // Welcome Text (Animated)
                 AnimatedOpacity(
                   opacity: _isRegisterMode ? 1.0 : 0.0,
                   duration: animationDuration,
@@ -88,14 +78,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const Spacer(flex: 2),
-                // Unified input field with animated hint
                 AnimatedSwitcher(
                   duration: animationDuration,
                   child: TextField(
-                    // The key is crucial for AnimatedSwitcher to detect a change
-                    key: ValueKey<String>(_isRegisterMode ? 'register' : (_isEmailMode ? 'email' : 'phone')),
+                    key: ValueKey<String>(_isRegisterMode
+                        ? 'register'
+                        : (_isEmailMode ? 'email' : 'phone')),
                     controller: _loginInputController,
-                    keyboardType: _isRegisterMode ? TextInputType.phone : (_isEmailMode ? TextInputType.emailAddress : TextInputType.phone),
+                    keyboardType: _isRegisterMode
+                        ? TextInputType.phone
+                        : (_isEmailMode
+                            ? TextInputType.emailAddress
+                            : TextInputType.phone),
                     style: const TextStyle(fontSize: 16),
                     decoration: InputDecoration(
                       filled: true,
@@ -104,14 +98,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(30.0),
                         borderSide: BorderSide.none,
                       ),
-                      hintText: _isRegisterMode ? '请输入手机号' : (_isEmailMode ? '请输入邮箱' : '请输入手机号'),
+                      hintText: _isRegisterMode
+                          ? '请输入手机号'
+                          : (_isEmailMode ? '请输入邮箱' : '请输入手机号'),
                       hintStyle: TextStyle(color: Colors.grey[500]),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 16),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                // Main Action button (Next/Register)
                 GradientActionButton(
                   label: _isRegisterMode ? '立即注册' : '下一步',
                   onPressed: () {
@@ -120,7 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         MaterialPageRoute(
                           builder: (context) => VerificationCodeScreen(
                             loginIdentifier: _loginInputController.text,
-                            // In register mode, it's always a phone number
                             isEmail: _isRegisterMode ? false : _isEmailMode,
                           ),
                         ),
@@ -129,7 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const Spacer(flex: 3),
-                // Other login methods (Animated)
                 AnimatedOpacity(
                   opacity: _isRegisterMode ? 0.0 : 1.0,
                   duration: animationDuration,
@@ -167,7 +161,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const Spacer(flex: 1),
-                // Bottom links
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -178,17 +171,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         });
                       },
                       style: ButtonStyle(
-                        overlayColor: MaterialStateProperty.all(Colors.transparent),
+                        overlayColor:
+                            MaterialStateProperty.all(Colors.transparent),
                       ),
-                      child: Text(_isRegisterMode ? '返回登录' : '注册账号', style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                      child: Text(_isRegisterMode ? '返回登录' : '注册账号',
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 14)),
                     ),
                     const Text('|', style: TextStyle(color: Colors.black26)),
                     TextButton(
                       onPressed: () {},
                       style: ButtonStyle(
-                        overlayColor: MaterialStateProperty.all(Colors.transparent),
+                        overlayColor:
+                            MaterialStateProperty.all(Colors.transparent),
                       ),
-                      child: const Text('遇到问题', style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                      child: const Text('遇到问题',
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 14)),
                     ),
                   ],
                 ),
