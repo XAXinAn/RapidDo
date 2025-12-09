@@ -62,6 +62,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Function to jump to today
+  void _jumpToToday() {
+    setState(() {
+      _focusedDay = DateTime.now();
+      _selectedDay = DateTime.now();
+    });
+  }
+
   PopupMenuItem<String> _buildPopupMenuItem(String title, String value) {
     return PopupMenuItem<String>(
       value: value,
@@ -196,6 +204,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       onSelected: (value) {
                         if (value == 'jump_to_date') {
                           _jumpToDate();
+                        } else if (value == 'jump_to_today') {
+                          _jumpToToday();
                         }
                       },
                       shape: RoundedRectangleBorder(
@@ -206,6 +216,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (BuildContext context) {
                         return [
                           _buildPopupMenuItem('跳转到指定日期', 'jump_to_date'),
+                          const PopupMenuDivider(),
+                          _buildPopupMenuItem('跳转到今天', 'jump_to_today'),
+                          const PopupMenuDivider(),
                           _buildPopupMenuItem('更多', 'more'),
                         ];
                       },
@@ -273,12 +286,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Center(
                         child: Hero(
                           tag: 'camera_button_hero',
-                          // This builder creates a non-animated version during the flight
                           flightShuttleBuilder: (flightContext, animation, flightDirection,
                               fromHeroContext, toHeroContext) {
                             return BreathingCameraButton(
                               onPressed: () {},
-                              animate: false, // Disable animation during flight
+                              animate: false,
                             );
                           },
                           child: BreathingCameraButton(

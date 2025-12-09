@@ -76,7 +76,7 @@ class _BreathingCameraButtonState extends State<BreathingCameraButton>
             boxShadow: widget.animate
                 ? [
                     BoxShadow(
-                      color: color.withOpacity(0.5),
+                      color: color.withOpacity(0.75),
                       blurRadius: _animation.value,
                       spreadRadius: _animation.value,
                     ),
