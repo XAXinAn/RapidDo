@@ -113,8 +113,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                 ),
                 const Spacer(flex: 3),
-                if (!_isRegisterMode)
-                  Row(
+                // Use AnimatedOpacity to hide without affecting layout
+                AnimatedOpacity(
+                  opacity: _isRegisterMode ? 0.0 : 1.0,
+                  duration: animationDuration,
+                  child: Row(
                     children: [
                       Expanded(
                         child: _isEmailMode
@@ -146,6 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
+                ),
                 const Spacer(flex: 1),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
