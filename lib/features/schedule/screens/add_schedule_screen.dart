@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:intl/intl.dart';
 import 'package:jisu_calendar/common/widgets/custom_time_picker.dart';
 
@@ -11,6 +12,7 @@ class AddScheduleScreen extends StatefulWidget {
 
 class _AddScheduleScreenState extends State<AddScheduleScreen> {
   DateTime? _selectedTime;
+  Color _selectedColor = Colors.blue;
 
   Future<void> _selectTime(BuildContext context) async {
     final DateTime? picked = await showModalBottomSheet<DateTime>(
@@ -28,6 +30,68 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
         _selectedTime = picked;
       });
     }
+  }
+
+  void _selectColor() {
+    Color pickerColor = _selectedColor;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Container(
+            height: 500, // Set a fixed height
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.all(Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text('选择颜色', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                Expanded( // Use Expanded to fill the remaining space
+                  child: SingleChildScrollView(
+                    child: ColorPicker(
+                      pickerColor: pickerColor,
+                      onColorChanged: (Color color) {
+                        pickerColor = color;
+                      },
+                      hexInputBar: true,
+                      pickerAreaHeightPercent: 0.7,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      TextButton(
+                        child: const Text('取消', style: TextStyle(fontSize: 16)),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      const SizedBox(height: 30, child: VerticalDivider()),
+                      TextButton(
+                        child: const Text('保存', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          setState(() => _selectedColor = pickerColor);
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildSection(String title, Widget content) {
@@ -94,6 +158,23 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                 title: Text(timeText),
                 contentPadding: EdgeInsets.zero,
                 onTap: () => _selectTime(context),
+              ),
+            ),
+            _buildSection(
+              '颜色',
+              ListTile(
+                leading: const Icon(Icons.colorize, color: Colors.grey),
+                title: const Text('选择颜色'),
+                trailing: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _selectedColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                contentPadding: EdgeInsets.zero,
+                onTap: _selectColor,
               ),
             ),
             _buildSection(
