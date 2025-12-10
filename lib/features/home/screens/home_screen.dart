@@ -2,8 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:jisu_calendar/common/widgets/custom_date_picker.dart';
-import 'package:jisu_calendar/features/authentication/widgets/breathing_camera_button.dart';
-import 'package:jisu_calendar/features/camera/screens/camera_screen.dart';
+import 'package:jisu_calendar/features/schedule/screens/add_schedule_screen.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -31,9 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _hintTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      setState(() {
-        _currentHintIndex = (_currentHintIndex + 1) % _hints.length;
-      });
+      if (mounted) {
+        setState(() {
+          _currentHintIndex = (_currentHintIndex + 1) % _hints.length;
+        });
+      }
     });
   }
 
@@ -62,7 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Function to jump to today
   void _jumpToToday() {
     setState(() {
       _focusedDay = DateTime.now();
@@ -73,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
   PopupMenuItem<String> _buildPopupMenuItem(String title, String value) {
     return PopupMenuItem<String>(
       value: value,
+      height: 40,
       child: Center(
         child: Text(title, style: const TextStyle(fontSize: 16)),
       ),
@@ -139,6 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _focusedDay = _focusedDay.subtract(const Duration(days: 7));
               });
             },
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
           ),
           Expanded(
             child: Text(
@@ -154,6 +157,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _focusedDay = _focusedDay.add(const Duration(days: 7));
               });
             },
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
           ),
         ],
       ),
@@ -192,13 +197,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: const Icon(Icons.person_outline),
                       iconSize: 28,
                       color: Colors.black54,
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
                     ),
                     _buildAiInputBox(),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Navigate to the new schedule screen
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (context) => const AddScheduleScreen(),
+                        ));
+                      },
                       icon: const Icon(Icons.add),
                       iconSize: 28,
                       color: Colors.black54,
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
                     ),
                     PopupMenuButton<String>(
                       onSelected: (value) {
@@ -216,14 +230,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (BuildContext context) {
                         return [
                           _buildPopupMenuItem('跳转到指定日期', 'jump_to_date'),
-                          const PopupMenuDivider(),
+                          const PopupMenuDivider(height: 1),
                           _buildPopupMenuItem('跳转到今天', 'jump_to_today'),
-                          const PopupMenuDivider(),
+                          const PopupMenuDivider(height: 1),
                           _buildPopupMenuItem('更多', 'more'),
                         ];
                       },
                       icon: const Icon(Icons.more_horiz, color: Colors.black54),
                       padding: EdgeInsets.zero,
+                      splashRadius: 1,
                     ),
                   ],
                 ),
@@ -276,51 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Positioned(
-                      bottom: 25,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Hero(
-                          tag: 'camera_button_hero',
-                          flightShuttleBuilder: (flightContext, animation, flightDirection,
-                              fromHeroContext, toHeroContext) {
-                            return BreathingCameraButton(
-                              onPressed: () {},
-                              animate: false,
-                            );
-                          },
-                          child: BreathingCameraButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                PageRouteBuilder(
-                                  transitionDuration:
-                                      const Duration(milliseconds: 800),
-                                  reverseTransitionDuration:
-                                      const Duration(milliseconds: 800),
-                                  pageBuilder: (context, animation,
-                                          secondaryAnimation) =>
-                                      const CameraScreen(),
-                                  transitionsBuilder: (context, animation,
-                                      secondaryAnimation, child) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: child,
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const Spacer(),
             ],
           ),
         ),

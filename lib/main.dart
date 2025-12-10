@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:jisu_calendar/common/localizations/numeric_month_cupertino_localizations.dart';
 import 'package:jisu_calendar/features/authentication/screens/login_screen.dart';
+import 'package:jisu_calendar/features/home/nav_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,6 @@ class MyApp extends StatelessWidget {
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
-        // Add our custom delegate
         NumericMonthCupertinoLocalizationsDelegate(),
         GlobalCupertinoLocalizations.delegate,
       ],
@@ -29,6 +29,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF8A78F2)),
         scaffoldBackgroundColor: const Color.fromRGBO(237, 237, 237, 1),
+        // Remove ripple effect globally
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -42,7 +45,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
+      home: const NavScreen(),
     );
   }
 }

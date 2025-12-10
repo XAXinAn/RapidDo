@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:jisu_calendar/features/authentication/screens/verification_code_screen.dart';
-import 'package:jisu_calendar/features/home/screens/home_screen.dart';
+import 'package:jisu_calendar/features/home/nav_screen.dart';
 import 'package:jisu_calendar/features/authentication/widgets/gradient_action_button.dart';
 import 'package:jisu_calendar/features/authentication/widgets/other_login_method_button.dart';
 
@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _loginWithWeChat() {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
+      MaterialPageRoute(builder: (context) => const NavScreen()),
       (Route<dynamic> route) => false,
     );
   }
@@ -101,19 +101,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: _isRegisterMode ? '立即注册' : '下一步',
                   onPressed: () {
                     if (_loginInputController.text.isNotEmpty) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => VerificationCodeScreen(
-                            loginIdentifier: _loginInputController.text,
-                            isEmail: _isEmailMode,
-                          ),
-                        ),
+                      // Navigate to NavScreen on successful login/registration
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const NavScreen()),
+                        (Route<dynamic> route) => false,
                       );
                     }
                   },
                 ),
                 const Spacer(flex: 3),
-                // Use AnimatedOpacity to hide without affecting layout
                 AnimatedOpacity(
                   opacity: _isRegisterMode ? 0.0 : 1.0,
                   duration: animationDuration,
