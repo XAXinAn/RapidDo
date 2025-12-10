@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,7 @@ class AddScheduleScreen extends StatefulWidget {
 class _AddScheduleScreenState extends State<AddScheduleScreen> {
   DateTime? _selectedTime;
   Color _selectedColor = Colors.blue;
+  List<PlatformFile> _pickedFiles = [];
 
   Future<void> _selectTime(BuildContext context) async {
     final DateTime? picked = await showModalBottomSheet<DateTime>(
@@ -52,7 +54,8 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                   padding: EdgeInsets.all(16.0),
                   child: Text('选择颜色', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
-                Expanded( // Use Expanded to fill the remaining space
+                Expanded(
+                  // Use Expanded to fill the remaining space
                   child: SingleChildScrollView(
                     child: ColorPicker(
                       pickerColor: pickerColor,
@@ -92,6 +95,15 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
         );
       },
     );
+  }
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+    if (result != null) {
+      setState(() {
+        _pickedFiles = result.files;
+      });
+    }
   }
 
   Widget _buildSection(String title, Widget content) {
@@ -189,13 +201,23 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
             ),
             _buildSection(
               '附件',
-              ListTile(
-                leading: const Icon(Icons.attachment_outlined, color: Colors.grey),
-                title: const Text('添加附件'),
-                contentPadding: EdgeInsets.zero,
-                onTap: () {
-                  // TODO: implement attachment picking logic
-                },
+              Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.attachment_outlined, color: Colors.grey),
+                    title: const Text('添加附件'),
+                    contentPadding: EdgeInsets.zero,
+                    onTap: _pickFiles,
+                  ),
+                  if (_pickedFiles.isNotEmpty)
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _pickedFiles.length,
+                      itemBuilder: (context, index) {
+                        return Text(_pickedFiles[index].name);
+                      },
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
