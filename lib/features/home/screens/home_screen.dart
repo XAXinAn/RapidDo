@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:jisu_calendar/common/widgets/custom_date_picker.dart';
 import 'package:jisu_calendar/features/schedule/screens/add_schedule_screen.dart';
+import 'package:jisu_calendar/features/schedule/screens/schedule_detail_screen.dart';
+import 'package:jisu_calendar/models/schedule.dart';
+import 'package:jisu_calendar/features/home/widgets/schedule_card.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -25,6 +28,53 @@ class _HomeScreenState extends State<HomeScreen> {
     '复制文本一键添加',
     '复杂通知秒变日程',
   ];
+
+  // Mock data for schedules
+  final Map<DateTime, List<Schedule>> _schedulesByDay = {
+    DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day): [
+      Schedule(
+        id: '1',
+        title: '计算机网络',
+        location: '@教学楼 138(新校区)',
+        startTime: DateTime.now().copyWith(hour: 8, minute: 0),
+        endTime: DateTime.now().copyWith(hour: 9, minute: 40),
+        color: Colors.pink.shade300,
+        notes: '带电脑，复习上节课内容。',
+      ),
+      Schedule(
+        id: '2',
+        title: '编译原理',
+        location: '@教学楼 335(新校区)',
+        startTime: DateTime.now().copyWith(hour: 10, minute: 0),
+        endTime: DateTime.now().copyWith(hour: 11, minute: 40),
+        color: Colors.pink.shade300,
+      ),
+      Schedule(
+        id: '3',
+        title: '网络应用开发技术',
+        location: '@公共实验楼 3-1号机房',
+        startTime: DateTime.now().copyWith(hour: 14, minute: 30),
+        endTime: DateTime.now().copyWith(hour: 16, minute: 0),
+        color: Colors.blue.shade300,
+        notes: '完成实验报告。',
+      ),
+    ],
+    DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day + 1): [
+      Schedule(
+        id: '4',
+        title: '操作系统',
+        location: '@教学楼 203(新校区)',
+        startTime: DateTime.now().add(const Duration(days: 1)).copyWith(hour: 10, minute: 0),
+        endTime: DateTime.now().add(const Duration(days: 1)).copyWith(hour: 11, minute: 40),
+        color: Colors.orange.shade300,
+      ),
+    ],
+  };
+
+  List<Schedule> _getSchedulesForDay(DateTime day) {
+    final dayUtc = DateTime.utc(day.year, day.month, day.day);
+    return _schedulesByDay[dayUtc] ?? [];
+  }
 
   @override
   void initState() {
@@ -168,6 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final selectedSchedules = _getSchedulesForDay(_selectedDay ?? DateTime.now());
 
     return Scaffold(
       body: Container(
@@ -291,7 +342,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const Spacer(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: selectedSchedules.length,
+                  itemBuilder: (context, index) {
+                    final schedule = selectedSchedules[index];
+                    return ScheduleCard(
+                      schedule: schedule,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ScheduleDetailScreen(schedule: schedule),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),
