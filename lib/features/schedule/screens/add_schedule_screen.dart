@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:jisu_calendar/common/widgets/custom_time_picker.dart';
 
 class AddScheduleScreen extends StatefulWidget {
   const AddScheduleScreen({super.key});
@@ -8,6 +10,26 @@ class AddScheduleScreen extends StatefulWidget {
 }
 
 class _AddScheduleScreenState extends State<AddScheduleScreen> {
+  DateTime? _selectedTime;
+
+  Future<void> _selectTime(BuildContext context) async {
+    final DateTime? picked = await showModalBottomSheet<DateTime>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: CustomTimePicker(initialDate: _selectedTime ?? DateTime.now()),
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedTime = picked;
+      });
+    }
+  }
+
   Widget _buildSection(String title, Widget content) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,6 +63,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dateFormat = DateFormat('yyyy年M月d日 EEE HH:mm', 'zh_CN');
+    final String timeText = _selectedTime != null ? dateFormat.format(_selectedTime!) : '选择时间';
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -64,10 +89,11 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
             ),
             _buildSection(
               '时间',
-              const ListTile(
-                leading: Icon(Icons.access_time, color: Colors.grey),
-                title: Text('选择时间'),
+              ListTile(
+                leading: const Icon(Icons.access_time, color: Colors.grey),
+                title: Text(timeText),
                 contentPadding: EdgeInsets.zero,
+                onTap: () => _selectTime(context),
               ),
             ),
             _buildSection(
