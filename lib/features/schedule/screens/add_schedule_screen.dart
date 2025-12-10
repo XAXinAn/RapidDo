@@ -8,8 +8,6 @@ class AddScheduleScreen extends StatefulWidget {
 }
 
 class _AddScheduleScreenState extends State<AddScheduleScreen> {
-  final Set<String> _selectedCategories = {'头脑风暴'};
-
   Widget _buildSection(String title, Widget content) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,36 +35,6 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
         icon: Icon(icon, color: Colors.grey),
         hintText: hint,
         border: InputBorder.none,
-      ),
-    );
-  }
-
-  // Reverted the background color to be a transparent version of the theme color
-  Widget _buildCategoryChip(String label, Color color) {
-    final isSelected = _selectedCategories.contains(label);
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (bool selected) {
-          setState(() {
-            if (selected) {
-              _selectedCategories.add(label);
-            } else {
-              _selectedCategories.remove(label);
-            }
-          });
-        },
-        backgroundColor: color.withOpacity(0.1), // Highly transparent theme color
-        selectedColor: color, // Solid theme color
-        showCheckmark: false,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : color, // Inverted text color
-          fontWeight: FontWeight.bold,
-        ),
-        shape: const StadiumBorder(),
-        side: BorderSide.none,
       ),
     );
   }
@@ -100,17 +68,6 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                 leading: Icon(Icons.access_time, color: Colors.grey),
                 title: Text('选择时间'),
                 contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            _buildSection(
-              '分类',
-              Wrap(
-                children: [
-                  _buildCategoryChip('头脑风暴', Colors.blue),
-                  _buildCategoryChip('设计', Colors.cyan),
-                  _buildCategoryChip('锻炼', Colors.orange),
-                  _buildCategoryChip('重要', Colors.red),
-                ],
               ),
             ),
             _buildSection(
