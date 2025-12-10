@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:jisu_calendar/common/widgets/custom_time_picker.dart';
 
@@ -14,7 +16,7 @@ class AddScheduleScreen extends StatefulWidget {
 class _AddScheduleScreenState extends State<AddScheduleScreen> {
   DateTime? _selectedTime;
   Color _selectedColor = Colors.blue;
-  List<PlatformFile> _pickedFiles = [];
+  final List<PlatformFile> _pickedFiles = [];
 
   Future<void> _selectTime(BuildContext context) async {
     final DateTime? picked = await showModalBottomSheet<DateTime>(
@@ -101,8 +103,27 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     final result = await FilePicker.platform.pickFiles(allowMultiple: true);
     if (result != null) {
       setState(() {
-        _pickedFiles = result.files;
+        _pickedFiles.addAll(result.files);
       });
+    }
+  }
+
+  Widget _buildFileIcon(PlatformFile file) {
+    final extension = file.extension?.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return const FaIcon(FontAwesomeIcons.filePdf, color: Colors.red);
+      case 'doc':
+      case 'docx':
+        return const FaIcon(FontAwesomeIcons.fileWord, color: Colors.blue);
+      case 'xls':
+      case 'xlsx':
+        return const FaIcon(FontAwesomeIcons.fileExcel, color: Colors.green);
+      case 'ppt':
+      case 'pptx':
+        return const FaIcon(FontAwesomeIcons.filePowerpoint, color: Colors.orange);
+      default:
+        return const Icon(Icons.insert_drive_file_outlined, color: Colors.grey);
     }
   }
 
@@ -145,7 +166,22 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('添加日程'),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black54),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('添加日程', style: TextStyle(color: Colors.black, fontSize: 18)),
+        centerTitle: false,
+        titleSpacing: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check, color: Colors.black54),
+            onPressed: () {
+              // TODO: Implement save schedule logic
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -212,9 +248,35 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                   if (_pickedFiles.isNotEmpty)
                     ListView.builder(
                       shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: _pickedFiles.length,
                       itemBuilder: (context, index) {
-                        return Text(_pickedFiles[index].name);
+                        final file = _pickedFiles[index];
+                        final isImage = ['jpg', 'jpeg', 'png'].contains(file.extension?.toLowerCase());
+
+                        return ListTile(
+                          leading: isImage && file.path != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  child: Image.file(
+                                    File(file.path!),
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : _buildFileIcon(file),
+                          title: Text(file.name, overflow: TextOverflow.ellipsis),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                            onPressed: () {
+                              setState(() {
+                                _pickedFiles.removeAt(index);
+                              });
+                            },
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        );
                       },
                     ),
                 ],
