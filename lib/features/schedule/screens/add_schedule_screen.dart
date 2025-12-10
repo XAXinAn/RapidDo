@@ -187,6 +187,17 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                 maxLines: 4,
               ),
             ),
+            _buildSection(
+              '附件',
+              ListTile(
+                leading: const Icon(Icons.attachment_outlined, color: Colors.grey),
+                title: const Text('添加附件'),
+                contentPadding: EdgeInsets.zero,
+                onTap: () {
+                  // TODO: implement attachment picking logic
+                },
+              ),
+            ),
             const SizedBox(height: 32),
           ],
         ),
