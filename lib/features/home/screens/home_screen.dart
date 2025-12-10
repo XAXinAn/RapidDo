@@ -58,6 +58,39 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.blue.shade300,
         notes: '完成实验报告。',
       ),
+      Schedule(
+        id: '5',
+        title: '数据结构',
+        location: '@公共实验楼 2-5号机房',
+        startTime: DateTime.now().copyWith(hour: 16, minute: 30),
+        endTime: DateTime.now().copyWith(hour: 18, minute: 0),
+        color: Colors.green.shade300,
+        notes: '预习下一章内容。',
+      ),
+      Schedule(
+        id: '6',
+        title: '软件工程',
+        location: '@教学楼 401(新校区)',
+        startTime: DateTime.now().copyWith(hour: 19, minute: 0),
+        endTime: DateTime.now().copyWith(hour: 20, minute: 40),
+        color: Colors.teal.shade300,
+      ),
+      Schedule(
+        id: '7',
+        title: '数据库系统',
+        location: '@教学楼 101(新校区)',
+        startTime: DateTime.now().copyWith(hour: 21, minute: 0),
+        endTime: DateTime.now().copyWith(hour: 22, minute: 40),
+        color: Colors.indigo.shade300,
+      ),
+      Schedule(
+        id: '8',
+        title: '团队会议',
+        location: '在线会议',
+        startTime: DateTime.now().copyWith(hour: 23, minute: 0),
+        endTime: DateTime.now().copyWith(hour: 23, minute: 50),
+        color: Colors.red.shade300,
+      ),
     ],
     DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day + 1): [
       Schedule(
@@ -238,6 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
           bottom: false,
           child: Column(
             children: [
+              // Fixed top action bar
               Container(
                 height: 56,
                 child: Row(
@@ -254,7 +288,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildAiInputBox(),
                     IconButton(
                       onPressed: () {
-                        // Navigate to the new schedule screen
                         Navigator.of(context).push(MaterialPageRoute(
                           builder: (context) => const AddScheduleScreen(),
                         ));
@@ -294,70 +327,79 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              _buildCalendarHeader(),
-              TableCalendar(
-                locale: 'zh_CN',
-                headerVisible: false,
-                calendarFormat: CalendarFormat.week,
-                firstDay: DateTime.utc(2010, 10, 16),
-                lastDay: DateTime.utc(2030, 3, 14),
-                focusedDay: _focusedDay,
-                selectedDayPredicate: (day) {
-                  return isSameDay(_selectedDay, day);
-                },
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                },
-                onPageChanged: (focusedDay) {
-                  setState(() {
-                    _focusedDay = focusedDay;
-                  });
-                },
-                calendarBuilders: CalendarBuilders(
-                  dowBuilder: (context, day) {
-                    const List<String> weekdays = ['一', '二', '三', '四', '五', '六', '日'];
-                    final text = weekdays[day.weekday - 1];
-                    return Center(
-                      child: Text(
-                        text,
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                    );
-                  },
-                ),
-                calendarStyle: CalendarStyle(
-                  defaultTextStyle: const TextStyle(),
-                  weekendTextStyle: const TextStyle(),
-                  outsideTextStyle: const TextStyle(color: Colors.grey),
-                  todayDecoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  selectedDecoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.75),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
+              // Scrollable content area
               Expanded(
-                child: ListView.builder(
-                  itemCount: selectedSchedules.length,
-                  itemBuilder: (context, index) {
-                    final schedule = selectedSchedules[index];
-                    return ScheduleCard(
-                      schedule: schedule,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => ScheduleDetailScreen(schedule: schedule),
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildCalendarHeader(),
+                      TableCalendar(
+                        locale: 'zh_CN',
+                        headerVisible: false,
+                        calendarFormat: CalendarFormat.week,
+                        firstDay: DateTime.utc(2010, 10, 16),
+                        lastDay: DateTime.utc(2030, 3, 14),
+                        focusedDay: _focusedDay,
+                        selectedDayPredicate: (day) {
+                          return isSameDay(_selectedDay, day);
+                        },
+                        onDaySelected: (selectedDay, focusedDay) {
+                          setState(() {
+                            _selectedDay = selectedDay;
+                            _focusedDay = focusedDay;
+                          });
+                        },
+                        onPageChanged: (focusedDay) {
+                          setState(() {
+                            _focusedDay = focusedDay;
+                          });
+                        },
+                        calendarBuilders: CalendarBuilders(
+                          dowBuilder: (context, day) {
+                            const List<String> weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+                            final text = weekdays[day.weekday - 1];
+                            return Center(
+                              child: Text(
+                                text,
+                                style: const TextStyle(color: Colors.black54),
+                              ),
+                            );
+                          },
+                        ),
+                        calendarStyle: CalendarStyle(
+                          defaultTextStyle: const TextStyle(),
+                          weekendTextStyle: const TextStyle(),
+                          outsideTextStyle: const TextStyle(color: Colors.grey),
+                          todayDecoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.25),
+                            shape: BoxShape.circle,
                           ),
-                        );
-                      },
-                    );
-                  },
+                          selectedDecoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.75),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: selectedSchedules.length,
+                        itemBuilder: (context, index) {
+                          final schedule = selectedSchedules[index];
+                          return ScheduleCard(
+                            schedule: schedule,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => ScheduleDetailScreen(schedule: schedule),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
