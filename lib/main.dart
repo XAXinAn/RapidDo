@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:jisu_calendar/common/localizations/numeric_month_cupertino_localizations.dart';
 import 'package:jisu_calendar/features/authentication/screens/login_screen.dart';
-import 'package:jisu_calendar/features/home/nav_screen.dart';
 import 'package:jisu_calendar/providers/schedule_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -52,7 +51,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const NavScreen(),
+      home: const LoginScreen(),
     );
   }
 }

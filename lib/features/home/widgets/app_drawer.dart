@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:jisu_calendar/features/profile/screens/profile_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     // A helper to create list items
     Widget buildListTile({required IconData icon, required String title, VoidCallback? onTap, Color? iconColor}) {
       return ListTile(
@@ -23,39 +22,56 @@ class AppDrawer extends StatelessWidget {
       child: Column(
         children: [
           // Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.white.withOpacity(0.3),
-                  child: const Icon(
-                    Icons.person,
-                    size: 36,
-                    color: Colors.white,
+          InkWell(
+            onTap: () {
+              Navigator.pop(context); // Close the drawer first
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+            },
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/card1.png'),
+                    fit: BoxFit.cover,
                   ),
                 ),
-                const SizedBox(width: 16),
-                const Text(
-                  '九号线', // Placeholder name
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.white.withOpacity(0.3),
+                          child: const Icon(
+                            Icons.person,
+                            size: 36,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Text(
+                          '九号线', // Placeholder name
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
+                          onPressed: () {},
+                          tooltip: '通知',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
-                  onPressed: () {},
-                  tooltip: '通知',
-                ),
-              ],
+              ),
             ),
           ),
           // Menu List

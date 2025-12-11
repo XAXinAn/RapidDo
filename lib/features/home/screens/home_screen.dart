@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:jisu_calendar/common/widgets/custom_date_picker.dart';
+import 'package:jisu_calendar/features/ai/screens/ai_chat_screen.dart';
 import 'package:jisu_calendar/features/home/widgets/app_drawer.dart';
 import 'package:jisu_calendar/features/schedule/screens/add_schedule_screen.dart';
 import 'package:jisu_calendar/features/schedule/screens/schedule_detail_screen.dart';
@@ -88,44 +89,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildAiInputBox() {
     return Expanded(
-      child: Container(
-        height: 40,
-        margin: const EdgeInsets.symmetric(horizontal: 8.0),
-        padding: const EdgeInsets.all(1.5),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF64D8D8), Color(0xFF8A78F2)],
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18.5),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Icon(Icons.auto_awesome, color: Colors.grey, size: 20),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const AiChatScreen(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 1000),
+              reverseTransitionDuration: const Duration(milliseconds: 1000),
+            ),
+          );
+        },
+        child: Hero(
+          tag: 'ai-chat-box',
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              height: 40,
+              margin: const EdgeInsets.symmetric(horizontal: 8.0),
+              padding: const EdgeInsets.all(1.5),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF64D8D8), Color(0xFF8A78F2)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18.5),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 8.0),
+                        child: Icon(Icons.auto_awesome, color: Colors.grey, size: 20),
+                      ),
+                    ),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                      child: Text(
+                        _hints[_currentHintIndex],
+                        key: ValueKey<String>(_hints[_currentHintIndex]),
+                        style: const TextStyle(color: Colors.grey),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-                child: Text(
-                  _hints[_currentHintIndex],
-                  key: ValueKey<String>(_hints[_currentHintIndex]),
-                  style: const TextStyle(color: Colors.grey),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
