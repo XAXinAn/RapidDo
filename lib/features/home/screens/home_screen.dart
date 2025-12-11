@@ -79,9 +79,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return PopupMenuItem<String>(
       value: value,
       height: 40,
-      child: Center(
-        child: Text(title, style: const TextStyle(fontSize: 16)),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16), // Adjust padding
+      child: Text(title, style: const TextStyle(fontSize: 16)),
     );
   }
 
@@ -233,13 +232,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(20.0),
                       ),
                       offset: const Offset(0, 40),
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white,
                       itemBuilder: (BuildContext context) {
-                        return [
+                        return <PopupMenuEntry<String>>[
                           _buildPopupMenuItem('跳转到指定日期', 'jump_to_date'),
-                          const PopupMenuDivider(height: 1),
+                          const PopupMenuDivider(height: 1, indent: 16, endIndent: 16),
                           _buildPopupMenuItem('跳转到今天', 'jump_to_today'),
-                          const PopupMenuDivider(height: 1),
+                          const PopupMenuDivider(height: 1, indent: 16, endIndent: 16),
                           _buildPopupMenuItem('更多', 'more'),
                         ];
                       },
