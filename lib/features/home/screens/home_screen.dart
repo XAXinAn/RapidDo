@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:jisu_calendar/common/widgets/custom_date_picker.dart';
+import 'package:jisu_calendar/features/home/widgets/app_drawer.dart';
 import 'package:jisu_calendar/features/schedule/screens/add_schedule_screen.dart';
 import 'package:jisu_calendar/features/schedule/screens/schedule_detail_screen.dart';
 import 'package:jisu_calendar/models/schedule.dart';
@@ -18,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay = DateTime.now();
 
@@ -176,6 +178,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final selectedSchedules = scheduleProvider.getSchedulesForDay(_selectedDay ?? DateTime.now());
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: SizedBox(
+        width: MediaQuery.of(context).size.width * 3 / 4,
+        child: const AppDrawer(),
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -200,7 +207,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     const SizedBox(width: 16),
                     IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        _scaffoldKey.currentState?.openDrawer();
+                      },
                       icon: const Icon(Icons.person_outline),
                       iconSize: 28,
                       color: Colors.black54,
