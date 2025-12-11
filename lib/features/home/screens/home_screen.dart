@@ -6,6 +6,8 @@ import 'package:jisu_calendar/features/schedule/screens/add_schedule_screen.dart
 import 'package:jisu_calendar/features/schedule/screens/schedule_detail_screen.dart';
 import 'package:jisu_calendar/models/schedule.dart';
 import 'package:jisu_calendar/features/home/widgets/schedule_card.dart';
+import 'package:jisu_calendar/providers/schedule_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,86 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
     '复制文本一键添加',
     '复杂通知秒变日程',
   ];
-
-  // Mock data for schedules
-  final Map<DateTime, List<Schedule>> _schedulesByDay = {
-    DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day): [
-      Schedule(
-        id: '1',
-        title: '计算机网络',
-        location: '@教学楼 138(新校区)',
-        startTime: DateTime.now().copyWith(hour: 8, minute: 0),
-        endTime: DateTime.now().copyWith(hour: 9, minute: 40),
-        color: Colors.pink.shade300,
-        notes: '带电脑，复习上节课内容。',
-      ),
-      Schedule(
-        id: '2',
-        title: '编译原理',
-        location: '@教学楼 335(新校区)',
-        startTime: DateTime.now().copyWith(hour: 10, minute: 0),
-        endTime: DateTime.now().copyWith(hour: 11, minute: 40),
-        color: Colors.pink.shade300,
-      ),
-      Schedule(
-        id: '3',
-        title: '网络应用开发技术',
-        location: '@公共实验楼 3-1号机房',
-        startTime: DateTime.now().copyWith(hour: 14, minute: 30),
-        endTime: DateTime.now().copyWith(hour: 16, minute: 0),
-        color: Colors.blue.shade300,
-        notes: '完成实验报告。',
-      ),
-      Schedule(
-        id: '5',
-        title: '数据结构',
-        location: '@公共实验楼 2-5号机房',
-        startTime: DateTime.now().copyWith(hour: 16, minute: 30),
-        endTime: DateTime.now().copyWith(hour: 18, minute: 0),
-        color: Colors.green.shade300,
-        notes: '预习下一章内容。',
-      ),
-      Schedule(
-        id: '6',
-        title: '软件工程',
-        location: '@教学楼 401(新校区)',
-        startTime: DateTime.now().copyWith(hour: 19, minute: 0),
-        endTime: DateTime.now().copyWith(hour: 20, minute: 40),
-        color: Colors.teal.shade300,
-      ),
-      Schedule(
-        id: '7',
-        title: '数据库系统',
-        location: '@教学楼 101(新校区)',
-        startTime: DateTime.now().copyWith(hour: 21, minute: 0),
-        endTime: DateTime.now().copyWith(hour: 22, minute: 40),
-        color: Colors.indigo.shade300,
-      ),
-      Schedule(
-        id: '8',
-        title: '团队会议',
-        location: '在线会议',
-        startTime: DateTime.now().copyWith(hour: 23, minute: 0),
-        endTime: DateTime.now().copyWith(hour: 23, minute: 50),
-        color: Colors.red.shade300,
-      ),
-    ],
-    DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day + 1): [
-      Schedule(
-        id: '4',
-        title: '操作系统',
-        location: '@教学楼 203(新校区)',
-        startTime: DateTime.now().add(const Duration(days: 1)).copyWith(hour: 10, minute: 0),
-        endTime: DateTime.now().add(const Duration(days: 1)).copyWith(hour: 11, minute: 40),
-        color: Colors.orange.shade300,
-      ),
-    ],
-  };
-
-  List<Schedule> _getSchedulesForDay(DateTime day) {
-    final dayUtc = DateTime.utc(day.year, day.month, day.day);
-    return _schedulesByDay[dayUtc] ?? [];
-  }
 
   @override
   void initState() {
@@ -251,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedSchedules = _getSchedulesForDay(_selectedDay ?? DateTime.now());
+    final scheduleProvider = Provider.of<ScheduleProvider>(context);
+    final selectedSchedules = scheduleProvider.getSchedulesForDay(_selectedDay ?? DateTime.now());
 
     return Scaffold(
       body: Container(
@@ -340,6 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         firstDay: DateTime.utc(2010, 10, 16),
                         lastDay: DateTime.utc(2030, 3, 14),
                         focusedDay: _focusedDay,
+                        eventLoader: scheduleProvider.getSchedulesForDay,
                         selectedDayPredicate: (day) {
                           return isSameDay(_selectedDay, day);
                         },
@@ -362,6 +286,33 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Text(
                                 text,
                                 style: const TextStyle(color: Colors.black54),
+                              ),
+                            );
+                          },
+                           markerBuilder: (context, day, events) {
+                            final isSelected = isSameDay(_selectedDay, day);
+                            final isToday = isSameDay(day, DateTime.now());
+                            final hasEvents = events.isNotEmpty;
+
+                            if (!hasEvents) return null;
+
+                            Color markerColor = Colors.grey.shade700;
+                            if (isSelected) {
+                              markerColor = Colors.white;
+                            } else if (isToday) {
+                              markerColor = theme.colorScheme.primary;
+                            }
+
+                            return Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: markerColor,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                             );
                           },
@@ -389,10 +340,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           return ScheduleCard(
                             schedule: schedule,
                             onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => ScheduleDetailScreen(schedule: schedule),
-                                ),
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) {
+                                  return ScheduleDetailSheet(schedule: schedule);
+                                },
                               );
                             },
                           );

@@ -14,8 +14,7 @@ class ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final startTime = DateFormat('HH:mm').format(schedule.startTime);
-    final endTime = DateFormat('HH:mm').format(schedule.endTime);
+    final time = DateFormat('HH:mm').format(schedule.time);
 
     return InkWell(
       onTap: onTap,
@@ -63,7 +62,7 @@ class ScheduleCard extends StatelessWidget {
                       const Icon(Icons.access_time_outlined, size: 16, color: Colors.grey),
                       const SizedBox(width: 4.0),
                       Text(
-                        '$startTime - $endTime',
+                        time,
                          style: const TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                     ],

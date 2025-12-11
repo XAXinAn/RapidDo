@@ -4,8 +4,7 @@ class Schedule {
   final String id;
   final String title;
   final String location;
-  final DateTime startTime;
-  final DateTime endTime;
+  final DateTime time;
   final Color color;
   final String? notes;
   final List<String>? attachments;
@@ -14,8 +13,7 @@ class Schedule {
     required this.id,
     required this.title,
     required this.location,
-    required this.startTime,
-    required this.endTime,
+    required this.time,
     required this.color,
     this.notes,
     this.attachments,

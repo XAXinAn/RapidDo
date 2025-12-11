@@ -1,3 +1,4 @@
+
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -6,18 +7,76 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:jisu_calendar/common/widgets/custom_time_picker.dart';
+import 'package:jisu_calendar/models/schedule.dart';
+import 'package:jisu_calendar/providers/schedule_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 class AddScheduleScreen extends StatefulWidget {
-  const AddScheduleScreen({super.key});
+  final Schedule? schedule;
+
+  const AddScheduleScreen({super.key, this.schedule});
 
   @override
   State<AddScheduleScreen> createState() => _AddScheduleScreenState();
 }
 
 class _AddScheduleScreenState extends State<AddScheduleScreen> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _locationController;
+  late final TextEditingController _notesController;
   DateTime? _selectedTime;
   Color _selectedColor = Colors.blue;
   final List<PlatformFile> _pickedFiles = [];
+
+  bool get isEditing => widget.schedule != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final schedule = widget.schedule;
+    _titleController = TextEditingController(text: schedule?.title);
+    _locationController = TextEditingController(text: schedule?.location);
+    _notesController = TextEditingController(text: schedule?.notes);
+    _selectedTime = schedule?.time;
+    _selectedColor = schedule?.color ?? Colors.blue;
+    // TODO: Handle attachments
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _locationController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _saveSchedule() {
+    if (_titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('标题不能为空')),
+      );
+      return;
+    }
+
+    final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
+    final schedule = Schedule(
+      id: widget.schedule?.id ?? Uuid().v4(),
+      title: _titleController.text,
+      location: _locationController.text,
+      time: _selectedTime ?? DateTime.now(),
+      color: _selectedColor,
+      notes: _notesController.text,
+    );
+
+    if (isEditing) {
+      scheduleProvider.updateSchedule(schedule);
+    } else {
+      scheduleProvider.addSchedule(schedule);
+    }
+
+    Navigator.of(context).pop();
+  }
 
   Future<void> _selectTime(BuildContext context) async {
     final DateTime? picked = await showModalBottomSheet<DateTime>(
@@ -149,8 +208,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     );
   }
 
-  Widget _buildTextField({required IconData icon, required String hint}) {
+  Widget _buildTextField({required IconData icon, required String hint, required TextEditingController controller}) {
     return TextField(
+      controller: controller,
       decoration: InputDecoration(
         icon: Icon(icon, color: Colors.black54),
         hintText: hint,
@@ -188,16 +248,13 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
             icon: const Icon(Icons.close, color: Colors.black54),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          title: const Text('添加日程', style: TextStyle(color: Colors.black, fontSize: 18)),
+          title: Text(isEditing ? '编辑日程' : '添加日程', style: const TextStyle(color: Colors.black, fontSize: 18)),
           centerTitle: false,
           titleSpacing: 0,
           actions: [
             IconButton(
               icon: const Icon(Icons.check, color: Colors.black54),
-              onPressed: () {
-                // TODO: Implement save schedule logic
-                Navigator.of(context).pop();
-              },
+              onPressed: _saveSchedule,
             ),
           ],
           backgroundColor: Colors.transparent,
@@ -211,9 +268,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
                 '基本信息',
                 Column(
                   children: [
-                    _buildTextField(icon: Icons.title, hint: '标题'),
+                    _buildTextField(icon: Icons.title, hint: '标题', controller: _titleController),
                     const Divider(),
-                    _buildTextField(icon: Icons.location_on_outlined, hint: '地点'),
+                    _buildTextField(icon: Icons.location_on_outlined, hint: '地点', controller: _locationController),
                   ],
                 ),
               ),
@@ -245,8 +302,9 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
               ),
               _buildSection(
                 '备注',
-                const TextField(
-                  decoration: InputDecoration(
+                 TextField(
+                  controller: _notesController,
+                  decoration: const InputDecoration(
                     hintText: '添加备注信息 (选填)',
                     border: InputBorder.none,
                   ),

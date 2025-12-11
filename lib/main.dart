@@ -3,10 +3,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:jisu_calendar/common/localizations/numeric_month_cupertino_localizations.dart';
 import 'package:jisu_calendar/features/authentication/screens/login_screen.dart';
 import 'package:jisu_calendar/features/home/nav_screen.dart';
+import 'package:jisu_calendar/providers/schedule_provider.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ScheduleProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
