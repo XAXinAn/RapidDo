@@ -14,7 +14,7 @@ class ScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final time = DateFormat('HH:mm').format(schedule.time);
+    final time = schedule.timeRangeText;
 
     return InkWell(
       onTap: onTap,
@@ -51,7 +51,7 @@ class ScheduleCard extends StatelessWidget {
                       const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
                       const SizedBox(width: 4.0),
                       Text(
-                        schedule.location,
+                        schedule.location ?? '未设置',
                         style: const TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                     ],

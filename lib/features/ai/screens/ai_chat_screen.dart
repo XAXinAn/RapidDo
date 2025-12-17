@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:jisu_calendar/features/ai/models/chat_message.dart';
-import 'package:jisu_calendar/features/ai/models/chat_session.dart';
 import 'package:jisu_calendar/features/ai/widgets/ai_history_drawer.dart';
-import 'package:uuid/uuid.dart';
+import 'package:jisu_calendar/providers/ai_chat_provider.dart';
+import 'package:provider/provider.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -14,35 +14,15 @@ class AiChatScreen extends StatefulWidget {
 
 class _AiChatScreenState extends State<AiChatScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final Uuid _uuid = const Uuid();
   final TextEditingController _textController = TextEditingController();
-
-  // --- Mock Data for Multiple Sessions ---
-  final List<ChatSession> _allSessions = [
-    ChatSession(
-      id: 'session_1',
-      title: '关于极速日历',
-      messages: [
-        ChatMessage(text: '你好', sender: Sender.user),
-        ChatMessage(text: '你好呀！很高兴能帮到你～是关于极速日历的开发有新问题，还是有其他想聊的呢？', sender: Sender.ai),
-      ],
-    ),
-    ChatSession(
-      id: 'session_2',
-      title: '人物抠图合成',
-      messages: [
-        ChatMessage(text: '如何用AI实现人物抠图并合成到新背景？', sender: Sender.user),
-        ChatMessage(text: '当然，这通常需要用到图像分割技术...', sender: Sender.ai),
-      ],
-    ),
-  ];
-
-  late ChatSession _currentSession;
 
   @override
   void initState() {
     super.initState();
-    _currentSession = _allSessions.first;
+    // 加载会话列表
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AiChatProvider>().loadSessions();
+    });
   }
 
   @override
@@ -52,49 +32,48 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 
   void _switchToSession(String sessionId) {
-    final session = _allSessions.firstWhere((s) => s.id == sessionId, orElse: () => _currentSession);
-    setState(() {
-      _currentSession = session;
-    });
+    context.read<AiChatProvider>().switchSession(sessionId);
     Navigator.pop(context); // Close the drawer
   }
 
   void _startNewChat() {
-    final newSession = ChatSession(
-      id: _uuid.v4(),
-      title: '新对话',
-      messages: [],
-    );
-    setState(() {
-      _allSessions.insert(0, newSession);
-      _currentSession = newSession;
-    });
+    context.read<AiChatProvider>().createNewSession();
     Navigator.pop(context); // Close the drawer
   }
 
   void _sendMessage() {
     final text = _textController.text;
     if (text.trim().isEmpty) return;
+    
+    final provider = context.read<AiChatProvider>();
+    if (provider.currentSession == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先创建或选择一个对话')),
+      );
+      return;
+    }
 
-    final userMessage = ChatMessage(text: text, sender: Sender.user);
-
-    setState(() {
-      _currentSession.messages.add(userMessage);
-    });
-
+    provider.sendMessage(text);
     _textController.clear();
-
-    // Simulate AI response
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        final aiResponse = ChatMessage(text: '我收到了你的消息: “$text”', sender: Sender.ai);
-        _currentSession.messages.add(aiResponse);
-      });
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<AiChatProvider>();
+    final currentSession = provider.currentSession;
+    final messages = provider.messages;
+    final isStreaming = provider.isStreaming;
+
+    // 显示错误信息
+    if (provider.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(provider.error!)),
+        );
+        provider.clearError();
+      });
+    }
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -112,13 +91,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
         key: _scaffoldKey,
         backgroundColor: Colors.transparent,
         appBar: _ChatAppBar(
-          title: _currentSession.title,
+          title: currentSession?.title ?? '极速精灵',
           onHistoryPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
         ),
         endDrawer: SizedBox(
           width: MediaQuery.of(context).size.width * 2 / 3,
           child: AiHistoryDrawer(
-            sessions: _allSessions,
             onSessionSelected: _switchToSession,
             onNewChatPressed: _startNewChat,
           ),
@@ -126,18 +104,42 @@ class _AiChatScreenState extends State<AiChatScreen> {
         body: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                itemCount: _currentSession.messages.length,
-                itemBuilder: (context, index) {
-                  final message = _currentSession.messages[index];
-                  return message.sender == Sender.user
-                      ? _UserMessageBubble(message: message)
-                      : _AiMessageBubble(message: message);
-                },
-              ),
+              child: currentSession == null || messages.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey[300]),
+                          const SizedBox(height: 16),
+                          Text(
+                            '开始与极速精灵对话',
+                            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isLastMessage = index == messages.length - 1;
+                        final showStreamingIndicator = isLastMessage && isStreaming && message.sender == Sender.ai;
+                        
+                        return message.sender == Sender.user
+                            ? _UserMessageBubble(message: message)
+                            : _AiMessageBubble(
+                                message: message,
+                                isStreaming: showStreamingIndicator,
+                              );
+                      },
+                    ),
             ),
-            _AiChatInputBar(controller: _textController, onSendPressed: _sendMessage),
+            _AiChatInputBar(
+              controller: _textController,
+              onSendPressed: _sendMessage,
+              isEnabled: !isStreaming,
+            ),
           ],
         ),
       ),
@@ -209,7 +211,8 @@ class _UserMessageBubble extends StatelessWidget {
 
 class _AiMessageBubble extends StatelessWidget {
   final ChatMessage message;
-  const _AiMessageBubble({required this.message});
+  final bool isStreaming;
+  const _AiMessageBubble({required this.message, this.isStreaming = false});
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +226,33 @@ class _AiMessageBubble extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Text(message.text, style: const TextStyle(color: Colors.black, fontSize: 16, height: 1.5)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Text(
+                  message.text.isEmpty ? '思考中...' : message.text,
+                  style: TextStyle(
+                    color: message.text.isEmpty ? Colors.grey : Colors.black,
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              if (isStreaming) ...[
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
         Padding(
           padding: const EdgeInsets.only(left: 4.0, top: 8.0, bottom: 8.0),
@@ -257,8 +286,13 @@ class _ActionButton extends StatelessWidget {
 class _AiChatInputBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSendPressed;
+  final bool isEnabled;
 
-  const _AiChatInputBar({required this.controller, required this.onSendPressed});
+  const _AiChatInputBar({
+    required this.controller,
+    required this.onSendPressed,
+    this.isEnabled = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -300,13 +334,14 @@ class _AiChatInputBar extends StatelessWidget {
                             Expanded(
                               child: TextField(
                                 controller: controller,
+                                enabled: isEnabled,
                                 decoration: const InputDecoration(
                                   hintText: '问一问极速精灵...',
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.zero,
                                   hintStyle: TextStyle(color: Colors.grey),
                                 ),
-                                onSubmitted: (_) => onSendPressed(),
+                                onSubmitted: isEnabled ? (_) => onSendPressed() : null,
                               ),
                             ),
                             IconButton(
@@ -323,8 +358,10 @@ class _AiChatInputBar extends StatelessWidget {
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.send),
-                color: Theme.of(context).colorScheme.primary,
-                onPressed: onSendPressed,
+                color: isEnabled 
+                    ? Theme.of(context).colorScheme.primary 
+                    : Colors.grey,
+                onPressed: isEnabled ? onSendPressed : null,
               ),
             ],
           ),

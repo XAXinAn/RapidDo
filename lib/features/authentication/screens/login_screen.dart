@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:jisu_calendar/common/utils/validators.dart';
 import 'package:jisu_calendar/features/authentication/screens/verification_code_screen.dart';
-import 'package:jisu_calendar/features/home/nav_screen.dart';
 import 'package:jisu_calendar/features/authentication/widgets/gradient_action_button.dart';
 import 'package:jisu_calendar/features/authentication/widgets/other_login_method_button.dart';
+import 'package:jisu_calendar/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   late TextEditingController _loginInputController;
   bool _isEmailMode = false;
   bool _isRegisterMode = false;
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -30,10 +33,83 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _loginWithWeChat() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const NavScreen()),
-      (Route<dynamic> route) => false,
+    // TODO: 实现微信登录功能
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('微信登录功能开发中...')),
     );
+  }
+
+  Future<void> _handleNextStep() async {
+    final input = _loginInputController.text.trim();
+    
+    // 验证输入
+    String? errorMessage;
+    if (_isEmailMode) {
+      errorMessage = Validators.validateEmail(input);
+    } else {
+      errorMessage = Validators.validatePhone(input);
+    }
+
+    if (errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 仅手机号模式调用发送验证码API
+      if (!_isEmailMode) {
+        final response = await _authService.sendVerificationCode(input);
+        
+        print('发送验证码响应: success=${response.success}, message=${response.message}');
+        
+        if (response.success) {
+          // 跳转到验证码页面
+          if (mounted) {
+            print('准备跳转到验证码页面');
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => VerificationCodeScreen(
+                  loginIdentifier: input,
+                  isEmail: _isEmailMode,
+                ),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response.message ?? '发送验证码失败')),
+            );
+          }
+        }
+      } else {
+        // 邮箱模式暂时提示
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('邮箱登录功能开发中...')),
+          );
+        }
+      }
+    } catch (e) {
+      print('发送验证码异常: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('操作失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -94,21 +170,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintStyle: TextStyle(color: Colors.black54),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 16),
-                  ),
+  ),
                 ),
                 const SizedBox(height: 24),
                 GradientActionButton(
                   label: _isRegisterMode ? '立即注册' : '下一步',
-                  onPressed: () {
-                    if (_loginInputController.text.isNotEmpty) {
-                      // Navigate to NavScreen on successful login/registration
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (context) => const NavScreen()),
-                        (Route<dynamic> route) => false,
-                      );
-                    }
-                  },
+                  onPressed: _isLoading ? () {} : () => _handleNextStep(),
                 ),
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16.0),
+                    child: CircularProgressIndicator(),
+                  ),
                 const Spacer(flex: 3),
                 AnimatedOpacity(
                   opacity: _isRegisterMode ? 0.0 : 1.0,

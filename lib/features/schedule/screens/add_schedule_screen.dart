@@ -28,6 +28,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
   DateTime? _selectedTime;
   Color _selectedColor = Colors.blue;
   final List<PlatformFile> _pickedFiles = [];
+  bool _isSaving = false;
 
   bool get isEditing => widget.schedule != null;
 
@@ -38,7 +39,16 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     _titleController = TextEditingController(text: schedule?.title);
     _locationController = TextEditingController(text: schedule?.location);
     _notesController = TextEditingController(text: schedule?.notes);
-    _selectedTime = schedule?.time;
+    // 从 scheduleDate 和 startTime 构建完整的 DateTime
+    if (schedule != null) {
+      final date = schedule.scheduleDate;
+      final time = schedule.startTime;
+      if (time != null) {
+        _selectedTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      } else {
+        _selectedTime = date;
+      }
+    }
     _selectedColor = schedule?.color ?? Colors.blue;
     // TODO: Handle attachments
   }
@@ -51,7 +61,7 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
     super.dispose();
   }
 
-  void _saveSchedule() {
+  Future<void> _saveSchedule() async {
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('标题不能为空')),
@@ -59,23 +69,44 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
       return;
     }
 
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
     final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
+    final selectedDateTime = _selectedTime ?? DateTime.now();
     final schedule = Schedule(
       id: widget.schedule?.id ?? Uuid().v4(),
       title: _titleController.text,
-      location: _locationController.text,
-      time: _selectedTime ?? DateTime.now(),
+      location: _locationController.text.isNotEmpty ? _locationController.text : null,
+      scheduleDate: DateTime(selectedDateTime.year, selectedDateTime.month, selectedDateTime.day),
+      startTime: TimeOfDay(hour: selectedDateTime.hour, minute: selectedDateTime.minute),
       color: _selectedColor,
-      notes: _notesController.text,
+      notes: _notesController.text.isNotEmpty ? _notesController.text : null,
     );
 
+    bool success;
     if (isEditing) {
-      scheduleProvider.updateSchedule(schedule);
+      success = await scheduleProvider.updateSchedule(schedule);
     } else {
-      scheduleProvider.addSchedule(schedule);
+      success = await scheduleProvider.addSchedule(schedule);
     }
 
-    Navigator.of(context).pop();
+    if (!mounted) return;
+
+    setState(() {
+      _isSaving = false;
+    });
+
+    if (success) {
+      Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(scheduleProvider.error ?? '保存失败')),
+      );
+    }
   }
 
   Future<void> _selectTime(BuildContext context) async {
@@ -252,10 +283,19 @@ class _AddScheduleScreenState extends State<AddScheduleScreen> {
           centerTitle: false,
           titleSpacing: 0,
           actions: [
-            IconButton(
-              icon: const Icon(Icons.check, color: Colors.black54),
-              onPressed: _saveSchedule,
-            ),
+            _isSaving
+                ? const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.check, color: Colors.black54),
+                    onPressed: _saveSchedule,
+                  ),
           ],
           backgroundColor: Colors.transparent,
           elevation: 0,

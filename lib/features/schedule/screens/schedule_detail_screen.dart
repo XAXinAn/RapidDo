@@ -6,13 +6,20 @@ import 'package:jisu_calendar/features/schedule/screens/add_schedule_screen.dart
 import 'package:jisu_calendar/providers/schedule_provider.dart';
 import 'package:provider/provider.dart';
 
-class ScheduleDetailSheet extends StatelessWidget {
+class ScheduleDetailSheet extends StatefulWidget {
   final Schedule schedule;
 
   const ScheduleDetailSheet({super.key, required this.schedule});
 
-  void _deleteSchedule(BuildContext context) {
-    showDialog(
+  @override
+  State<ScheduleDetailSheet> createState() => _ScheduleDetailSheetState();
+}
+
+class _ScheduleDetailSheetState extends State<ScheduleDetailSheet> {
+  bool _isDeleting = false;
+
+  Future<void> _deleteSchedule(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
@@ -22,20 +29,38 @@ class ScheduleDetailSheet extends StatelessWidget {
           actions: [
             TextButton(
               child: const Text('取消'),
-              onPressed: () => Navigator.of(ctx).pop(),
+              onPressed: () => Navigator.of(ctx).pop(false),
             ),
             TextButton(
               child: const Text('删除', style: TextStyle(color: Colors.red)),
-              onPressed: () {
-                Provider.of<ScheduleProvider>(context, listen: false).deleteSchedule(schedule.id);
-                Navigator.of(ctx).pop(); // Close the dialog
-                Navigator.of(context).pop(); // Close the bottom sheet
-              },
+              onPressed: () => Navigator.of(ctx).pop(true),
             ),
           ],
         );
       },
     );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      _isDeleting = true;
+    });
+
+    final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
+    final success = await scheduleProvider.deleteSchedule(widget.schedule.id);
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pop(); // Close the bottom sheet
+    } else {
+      setState(() {
+        _isDeleting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(scheduleProvider.error ?? '删除失败')),
+      );
+    }
   }
 
   @override
@@ -63,22 +88,31 @@ class ScheduleDetailSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  schedule.title,
+                  widget.schedule.title,
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ),
               Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () => _deleteSchedule(context),
-                  ),
+                  _isDeleting
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () => _deleteSchedule(context),
+                        ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined),
-                    onPressed: () {
+                    onPressed: _isDeleting ? null : () {
                       Navigator.of(context).pop(); // Dismiss the bottom sheet
                       Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => AddScheduleScreen(schedule: schedule),
+                        builder: (context) => AddScheduleScreen(schedule: widget.schedule),
                       ));
                     },
                   ),
@@ -89,14 +123,14 @@ class ScheduleDetailSheet extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Details Section
-          _buildDetailRow(Icons.calendar_today_outlined, dateFormat.format(schedule.time)),
+          _buildDetailRow(Icons.calendar_today_outlined, dateFormat.format(widget.schedule.scheduleDate)),
           const SizedBox(height: 16),
-          _buildDetailRow(Icons.access_time_outlined, timeFormat.format(schedule.time)),
+          _buildDetailRow(Icons.access_time_outlined, widget.schedule.timeRangeText),
           const SizedBox(height: 16),
-          _buildDetailRow(Icons.location_on_outlined, schedule.location),
-          if (schedule.notes != null && schedule.notes!.isNotEmpty) ...[
+          _buildDetailRow(Icons.location_on_outlined, widget.schedule.location ?? '未设置'),
+          if (widget.schedule.notes != null && widget.schedule.notes!.isNotEmpty) ...[
             const SizedBox(height: 16),
-            _buildDetailRow(Icons.notes_outlined, schedule.notes!),
+            _buildDetailRow(Icons.notes_outlined, widget.schedule.notes!),
           ],
           const SizedBox(height: 24),
         ],

@@ -44,6 +44,16 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     });
+    
+    // 加载当前月份的日程
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSchedulesForCurrentMonth();
+    });
+  }
+
+  void _loadSchedulesForCurrentMonth() {
+    final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
+    scheduleProvider.loadSchedulesForMonth(_focusedDay.year, _focusedDay.month);
   }
 
   @override
@@ -90,8 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAiInputBox() {
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) => const AiChatScreen(),
               transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -101,6 +111,15 @@ class _HomeScreenState extends State<HomeScreen> {
               reverseTransitionDuration: const Duration(milliseconds: 1000),
             ),
           );
+          // 从 AI 聊天页面返回后，强制刷新当前月份的日程
+          if (mounted) {
+            final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
+            scheduleProvider.loadSchedulesForMonth(
+              _focusedDay.year, 
+              _focusedDay.month,
+              forceRefresh: true,
+            );
+          }
         },
         child: Hero(
           tag: 'ai-chat-box',
@@ -306,6 +325,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           setState(() {
                             _focusedDay = focusedDay;
                           });
+                          // 加载新月份的日程
+                          final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
+                          scheduleProvider.loadSchedulesForMonth(focusedDay.year, focusedDay.month);
                         },
                         calendarBuilders: CalendarBuilders(
                           dowBuilder: (context, day) {

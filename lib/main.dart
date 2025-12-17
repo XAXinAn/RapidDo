@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:jisu_calendar/common/localizations/numeric_month_cupertino_localizations.dart';
 import 'package:jisu_calendar/features/authentication/screens/login_screen.dart';
+import 'package:jisu_calendar/providers/ai_chat_provider.dart';
 import 'package:jisu_calendar/providers/schedule_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => ScheduleProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ScheduleProvider()),
+        ChangeNotifierProvider(create: (_) => AiChatProvider()),
+      ],
       child: const MyApp(),
     ),
   );

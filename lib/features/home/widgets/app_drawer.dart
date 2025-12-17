@@ -1,8 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:jisu_calendar/features/profile/screens/profile_screen.dart';
+import 'package:jisu_calendar/features/authentication/screens/login_screen.dart';
+import 'package:jisu_calendar/models/user.dart';
+import 'package:jisu_calendar/services/auth_service.dart';
+import 'package:jisu_calendar/services/avatar_service.dart';
 
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
+
+  @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> {
+  final AuthService _authService = AuthService();
+  final AvatarService _avatarService = AvatarService();
+  
+  User? _user;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    try {
+      final userId = await _authService.getCurrentUserId();
+      if (userId != null) {
+        final response = await _authService.getUserInfo(userId, requesterId: userId);
+        if (response.success && response.data != null) {
+          setState(() {
+            _user = response.data;
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      print('加载用户信息失败: $e');
+    }
+    
+    // 尝试从本地存储获取用户名
+    final userName = await _authService.getCurrentUserName();
+    setState(() {
+      _user = userName != null ? User(id: '', name: userName) : null;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('退出登录'),
+        content: const Text('确定要退出当前账号吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确定', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _authService.logout();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,22 +122,34 @@ class AppDrawer extends StatelessWidget {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: Colors.white.withOpacity(0.3),
-                          child: const Icon(
-                            Icons.person,
-                            size: 36,
-                            color: Colors.white,
-                          ),
+                          backgroundImage: _user?.avatarUrl != null
+                              ? NetworkImage(_avatarService.getAvatarUrl(_user?.avatarUrl))
+                              : null,
+                          child: _user?.avatarUrl == null
+                              ? const Icon(Icons.person, size: 36, color: Colors.white)
+                              : null,
                         ),
                         const SizedBox(width: 16),
-                        const Text(
-                          '九号线', // Placeholder name
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Expanded(
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  _user?.name ?? '用户',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                         ),
-                        const Spacer(),
                         IconButton(
                           icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
                           onPressed: () {},
@@ -109,9 +197,7 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.logout,
                   title: '退出账号',
                   iconColor: Colors.red.shade600,
-                  onTap: () {
-                    // TODO: Implement logout
-                  },
+                  onTap: _logout,
                 ),
               ],
             ),

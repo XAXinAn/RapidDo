@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:jisu_calendar/features/ai/models/chat_session.dart';
+import 'package:jisu_calendar/providers/ai_chat_provider.dart';
+import 'package:provider/provider.dart';
 
 class AiHistoryDrawer extends StatelessWidget {
-  final List<ChatSession> sessions;
   final Function(String) onSessionSelected;
   final VoidCallback onNewChatPressed;
 
   const AiHistoryDrawer({
     super.key,
-    required this.sessions,
     required this.onSessionSelected,
     required this.onNewChatPressed,
   });
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<AiChatProvider>();
+    final sessions = provider.sessions;
+    final isLoading = provider.isLoading;
+
     return Drawer(
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -51,20 +54,36 @@ class AiHistoryDrawer extends StatelessWidget {
               const SizedBox(height: 16),
               // History List
               Expanded(
-                child: ListView.builder(
-                  itemCount: sessions.length,
-                  itemBuilder: (context, index) {
-                    final item = sessions[index];
-                    return ListTile(
-                      title: Text(
-                        item.title,
-                        style: const TextStyle(color: Colors.black87, fontSize: 15),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onTap: () => onSessionSelected(item.id),
-                    );
-                  },
-                ),
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : sessions.isEmpty
+                        ? Center(
+                            child: Text(
+                              '暂无对话记录',
+                              style: TextStyle(color: Colors.grey.shade500),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: sessions.length,
+                            itemBuilder: (context, index) {
+                              final item = sessions[index];
+                              final isSelected = provider.currentSession?.id == item.id;
+                              return ListTile(
+                                title: Text(
+                                  item.title,
+                                  style: TextStyle(
+                                    color: isSelected ? Theme.of(context).primaryColor : Colors.black87,
+                                    fontSize: 15,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                selected: isSelected,
+                                selectedTileColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                                onTap: () => onSessionSelected(item.id),
+                              );
+                            },
+                          ),
               ),
             ],
           ),

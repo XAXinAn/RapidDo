@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:jisu_calendar/features/home/screens/home_screen.dart';
+import 'package:jisu_calendar/common/utils/validators.dart';
+import 'package:jisu_calendar/features/home/nav_screen.dart';
+import 'package:jisu_calendar/services/auth_service.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
   final String loginIdentifier;
@@ -17,6 +19,8 @@ class VerificationCodeScreen extends StatefulWidget {
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   late TextEditingController _codeController;
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -30,17 +34,78 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     super.dispose();
   }
 
-  void _login() {
-    // TODO: Implement code verification logic
-    if (_codeController.text == '123456') { // Changed to 6 digits
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-        (Route<dynamic> route) => false,
-      );
-    } else {
+  Future<void> _resendCode() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _authService.sendVerificationCode(widget.loginIdentifier);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message ?? '验证码已发送')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('发送失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _login() async {
+    final errorMessage = Validators.validateVerificationCode(_codeController.text);
+    if (errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('验证码错误')),
+        SnackBar(content: Text(errorMessage)),
       );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await _authService.loginWithPhone(
+        phone: widget.loginIdentifier,
+        code: _codeController.text,
+      );
+
+      if (mounted) {
+        if (response.success) {
+          // 登录成功，跳转到主页
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const NavScreen()),
+            (Route<dynamic> route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message ?? '登录失败')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('登录失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -94,23 +159,18 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   controller: _codeController,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
-                  maxLength: 6, // Limit to 6 digits
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 6), // Adjusted spacing
+                  maxLength: 6,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 6),
                   decoration: InputDecoration(
-                    counterText: '', // Hide the counter
+                    counterText: '',
                     border: InputBorder.none,
-                    hintText: '请输入六位验证码', // Updated hint
+                    hintText: '请输入六位验证码',
                     hintStyle: TextStyle(fontSize: 18, color: Colors.grey[400], letterSpacing: 2),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
-                    // TODO: Implement resend code logic
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('验证码已重新发送')),
-                    );
-                  },
+                  onPressed: _isLoading ? null : _resendCode,
                   style: ButtonStyle(
                     overlayColor: MaterialStateProperty.all(Colors.transparent),
                   ),
@@ -118,7 +178,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 ),
                 const Spacer(flex: 2),
                 ElevatedButton(
-                  onPressed: _login,
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
@@ -138,10 +198,12 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                     child: Container(
                       alignment: Alignment.center,
                       height: 50,
-                      child: const Text(
-                        '登录',
-                        style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              '登录',
+                              style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
                     ),
                   ),
                 ),
