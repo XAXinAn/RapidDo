@@ -1,7 +1,11 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:jisu_calendar/features/ai/screens/ai_chat_screen.dart';
 import 'package:jisu_calendar/features/authentication/widgets/breathing_camera_button.dart';
+import 'package:jisu_calendar/services/ocr_service.dart';
+import 'package:jisu_calendar/providers/ai_chat_provider.dart';
+import 'package:provider/provider.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -14,7 +18,10 @@ class _CameraScreenState extends State<CameraScreen> {
   late List<CameraDescription> _cameras;
   late CameraController _controller;
   bool _isInitialized = false;
+  bool _controllerDisposed = false;
   final ImagePicker _picker = ImagePicker();
+  final OcrService _ocrService = const OcrService();
+  bool _isOcrBusy = false;
 
   bool _areControlsVisible = false;
   FlashMode _flashMode = FlashMode.off;
@@ -28,6 +35,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _initializeCamera() async {
+    if (_controllerDisposed) return;
     _cameras = await availableCameras();
     _controller = CameraController(
       _cameras[0],
@@ -50,40 +58,33 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    if (_flashMode == FlashMode.torch) {
-      _controller.setFlashMode(FlashMode.off);
-    }
-    if (_isInitialized) {
-      _controller.dispose();
-    }
+    _disposeCameraController();
     super.dispose();
   }
 
   Future<void> _takePicture() async {
-    if (!_controller.value.isInitialized) return;
+    if (!_controller.value.isInitialized || _controllerDisposed) return;
     try {
       final XFile imageFile = await _controller.takePicture();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('拍摄成功，照片保存在${imageFile.path}')),
-        );
+        await _runOcr(imageFile.path);
       }
     } catch (e) {
       print(e);
     }
   }
 
-  Future<void> _openGallery() async {
+  Future<void> _openGallery({bool runOcr = false}) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已选择图片: ${image.path}')),
-      );
+      if (runOcr) {
+        await _runOcr(image.path);
+      }
     }
   }
 
   Future<void> _toggleFlash() async {
-    if (!_isInitialized) return;
+    if (!_isInitialized || _controllerDisposed) return;
     final newMode = _flashMode == FlashMode.off ? FlashMode.torch : FlashMode.off;
     try {
       await _controller.setFlashMode(newMode);
@@ -95,10 +96,86 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  Future<void> _runOcr(String imagePath) async {
+    if (_isOcrBusy || !mounted) return;
+    setState(() {
+      _isOcrBusy = true;
+    });
+
+    final provider = context.read<AiChatProvider>();
+
+    // 确保会话存在
+    if (provider.currentSession == null) {
+      await provider.createNewSession();
+    }
+
+    // 跳转到 AI 聊天，先占位提示“识别中...”
+    provider.addLocalAssistantMessage('识别中...');
+
+    await _disposeCameraController();
+
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const AiChatScreen()),
+      );
+    }
+
+    try {
+      final text = await _ocrService.recognize(imagePath);
+      final trimmed = text.trim();
+      if (trimmed.isEmpty) {
+        provider.updateLastAssistantMessage('未识别到文字，请重试');
+      } else {
+        provider.updateLastAssistantMessage('识别完成，正在发送…');
+        provider.sendMessage('帮我添加日程：$trimmed');
+      }
+    } catch (e) {
+      provider.updateLastAssistantMessage('识别失败: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isOcrBusy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _goToAiChatWithText(String text) async {
+    final prefixed = '帮我添加日程：$text';
+    final provider = context.read<AiChatProvider>();
+
+    if (provider.currentSession == null) {
+      await provider.createNewSession();
+    }
+
+    provider.sendMessage(prefixed);
+
+    await _disposeCameraController();
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AiChatScreen()),
+    );
+  }
+
+  Future<void> _disposeCameraController() async {
+    if (_controllerDisposed) return;
+    if (_flashMode == FlashMode.torch && _isInitialized) {
+      try {
+        await _controller.setFlashMode(FlashMode.off);
+      } catch (_) {}
+    }
+    if (_isInitialized) {
+      try {
+        await _controller.dispose();
+      } catch (_) {}
+    }
+    _controllerDisposed = true;
+    _isInitialized = false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -171,7 +248,14 @@ class _CameraScreenState extends State<CameraScreen> {
                       lightColor: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 48),
+                  AnimatedOpacity(
+                    opacity: _areControlsVisible ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 500),
+                    child: IconButton(
+                      onPressed: _isOcrBusy ? null : () => _openGallery(runOcr: true),
+                      icon: const Icon(Icons.document_scanner, color: Colors.white, size: 32),
+                    ),
+                  ),
                 ],
               ),
             ),

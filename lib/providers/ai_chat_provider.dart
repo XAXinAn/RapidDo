@@ -453,4 +453,48 @@ class AiChatProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  /// 在本地追加一条 AI 消息（不触发后端），用于占位/提示
+  void addLocalAssistantMessage(String text) {
+    if (_currentSession == null) {
+      _createLocalSession();
+    }
+    _addMessageToCurrentSession(ChatMessage.assistant(text));
+  }
+
+  /// 更新当前会话最后一条 AI 消息内容（用于占位更新）
+  void updateLastAssistantMessage(String text) {
+    if (_currentSession == null || _currentSession!.messages.isEmpty) return;
+    final last = _currentSession!.messages.last;
+    if (last.sender != Sender.ai) return;
+
+    final messages = List<ChatMessage>.from(_currentSession!.messages);
+    messages[messages.length - 1] = ChatMessage(
+      id: last.id,
+      sessionId: last.sessionId,
+      text: text,
+      sender: Sender.ai,
+      tokensUsed: last.tokensUsed,
+      sequenceNum: last.sequenceNum,
+      createdAt: last.createdAt,
+    );
+
+    _currentSession = ChatSession(
+      id: _currentSession!.id,
+      userId: _currentSession!.userId,
+      title: _currentSession!.title,
+      status: _currentSession!.status,
+      messageCount: messages.length,
+      messages: messages,
+      createdAt: _currentSession!.createdAt,
+      updatedAt: DateTime.now(),
+      lastMessageAt: DateTime.now(),
+    );
+
+    final index = _sessions.indexWhere((s) => s.id == _currentSession!.id);
+    if (index >= 0) {
+      _sessions[index] = _currentSession!;
+    }
+    notifyListeners();
+  }
 }

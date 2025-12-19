@@ -38,8 +38,18 @@ android {
 "debug")
         }
     }
+
+    packaging {
+        jniLibs {
+            pickFirsts += setOf("**/libc++_shared.so")
+        }
+    }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("com.github.equationl.paddleocr4android:paddleocr4android:v1.2.9")
 }

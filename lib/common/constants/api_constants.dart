@@ -1,8 +1,8 @@
 /// API 常量配置
 /// 基于后端接口文档 SpeedCalendar-Server
 class ApiConstants {
-  // Base URL - Android 模拟器访问主机使用 10.0.2.2
-  static const String baseUrl = 'http://10.0.2.2:8080/api';
+  // Base URL - 真机调试经 adb reverse 走本机服务
+  static const String baseUrl = 'http://127.0.0.1:8080/api';
   
   // 超时时间配置
   static const Duration connectTimeout = Duration(seconds: 30);
