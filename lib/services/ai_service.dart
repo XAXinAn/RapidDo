@@ -147,6 +147,7 @@ class AiService {
     String? title,
   }) async* {
     try {
+      final tSendStart = DateTime.now().millisecondsSinceEpoch;
       final dio = _apiService.dio;
       final accessToken = await _apiService.getAccessToken();
 
@@ -170,6 +171,9 @@ class AiService {
         ),
       );
 
+      final tConnected = DateTime.now().millisecondsSinceEpoch;
+      print('ai_timing: connected=${tConnected - tSendStart}ms');
+
       final stream = response.data?.stream;
       if (stream == null) {
         yield AiStreamEvent.error('响应流为空');
@@ -177,10 +181,10 @@ class AiService {
       }
 
       // 解析 SSE 流
+      var firstTokenLogged = false;
       String buffer = '';
       await for (final chunk in stream) {
         final decoded = utf8.decode(chunk);
-        print('🔵 SSE 原始数据: $decoded');
         buffer += decoded;
         
         // 按行分割，处理完整的 SSE 事件
@@ -189,7 +193,6 @@ class AiService {
         
         for (int i = 0; i < lines.length - 1; i++) {
           final line = lines[i].trim();
-          print('🟡 SSE 行: $line');
           if (line.startsWith('data:')) {
             // 兼容 "data: " 和 "data:" 两种格式
             final jsonStr = line.startsWith('data: ') 
@@ -199,23 +202,27 @@ class AiService {
             
             try {
               final data = json.decode(jsonStr) as Map<String, dynamic>;
-              print('🟢 SSE JSON: $data');
               final content = data['content'] as String? ?? '';
               final done = data['done'] as bool? ?? false;
               
               if (done) {
+                final now = DateTime.now().millisecondsSinceEpoch;
+                print('ai_timing: done=${now - tSendStart}ms');
                 yield AiStreamEvent.done(
                   sessionId: data['sessionId'] as String?,
                   messageId: data['messageId'] as String?,
                   tokensUsed: data['tokensUsed'] as int?,
                 );
               } else if (content.isNotEmpty) {
-                print('🟢 发送 content 事件: $content');
+                if (!firstTokenLogged) {
+                  firstTokenLogged = true;
+                  final now = DateTime.now().millisecondsSinceEpoch;
+                  print('ai_timing: first_token=${now - tSendStart}ms');
+                }
                 yield AiStreamEvent.content(content);
               }
             } catch (e) {
               // JSON 解析错误，跳过该行
-              print('❌ SSE 解析错误: $e, line: $jsonStr');
             }
           }
         }

@@ -74,6 +74,20 @@ class PaddleOcrHandler(private val context: Context) {
         return result.simpleText.ifBlank { "" }
     }
 
+    /**
+     * 直接识别内存中的 Bitmap，省去磁盘读写与二次压缩。
+     */
+    @Throws(Exception::class)
+    fun recognize(bitmap: Bitmap): String {
+        ensureInited()
+        val result: OcrResult = when (val r = ocr?.runSync(bitmap)) {
+            is Result<*> -> (r.getOrNull() as? OcrResult) ?: throw (r.exceptionOrNull() ?: IllegalStateException("PaddleOCR 未初始化"))
+            is OcrResult -> r
+            else -> throw IllegalStateException("PaddleOCR 未初始化")
+        }
+        return result.simpleText.ifBlank { "" }
+    }
+
     private fun decodeScaledBitmap(imageFile: File, maxDim: Int = 1280): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(imageFile.absolutePath, bounds)

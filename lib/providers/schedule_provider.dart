@@ -164,6 +164,15 @@ class ScheduleProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// 清除所有缓存数据（退出登录时调用）
+  void clearAll() {
+    _schedules.clear();
+    _loadedMonths.clear();
+    _isLoading = false;
+    _error = null;
+    notifyListeners();
+  }
+
   // ========== 私有方法 ==========
 
   void _addScheduleToCache(Schedule schedule) {

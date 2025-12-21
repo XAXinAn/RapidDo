@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:jisu_calendar/features/profile/screens/profile_screen.dart';
 import 'package:jisu_calendar/features/authentication/screens/login_screen.dart';
 import 'package:jisu_calendar/models/user.dart';
+import 'package:jisu_calendar/providers/schedule_provider.dart';
+import 'package:jisu_calendar/providers/ai_chat_provider.dart';
 import 'package:jisu_calendar/services/auth_service.dart';
 import 'package:jisu_calendar/services/avatar_service.dart';
+import 'package:provider/provider.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -70,6 +73,12 @@ class _AppDrawerState extends State<AppDrawer> {
     );
 
     if (confirm == true) {
+      // 清除所有 Provider 缓存
+      if (mounted) {
+        context.read<ScheduleProvider>().clearAll();
+        context.read<AiChatProvider>().reset();
+      }
+      
       await _authService.logout();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(

@@ -19,7 +19,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay = DateTime.now();
@@ -37,6 +37,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // 监听应用生命周期
+    WidgetsBinding.instance.addObserver(this);
+    
     _hintTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (mounted) {
         setState(() {
@@ -53,11 +56,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _loadSchedulesForCurrentMonth() {
     final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
-    scheduleProvider.loadSchedulesForMonth(_focusedDay.year, _focusedDay.month);
+    // 始终强制刷新，确保从服务器获取最新数据
+    scheduleProvider.loadSchedulesForMonth(_focusedDay.year, _focusedDay.month, forceRefresh: true);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // 当应用从后台恢复到前台时，刷新日程（处理悬浮窗添加日程的场景）
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadSchedulesForCurrentMonth();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _hintTimer.cancel();
     super.dispose();
   }
@@ -111,14 +125,9 @@ class _HomeScreenState extends State<HomeScreen> {
               reverseTransitionDuration: const Duration(milliseconds: 1000),
             ),
           );
-          // 从 AI 聊天页面返回后，强制刷新当前月份的日程
+          // 从 AI 聊天页面返回后，强制刷新当前聚焦月份的日程
           if (mounted) {
-            final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
-            scheduleProvider.loadSchedulesForMonth(
-              _focusedDay.year, 
-              _focusedDay.month,
-              forceRefresh: true,
-            );
+            _loadSchedulesForCurrentMonth();
           }
         },
         child: Hero(
@@ -325,9 +334,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           setState(() {
                             _focusedDay = focusedDay;
                           });
-                          // 加载新月份的日程
+                          // 加载新月份的日程（强制刷新）
                           final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
-                          scheduleProvider.loadSchedulesForMonth(focusedDay.year, focusedDay.month);
+                          scheduleProvider.loadSchedulesForMonth(focusedDay.year, focusedDay.month, forceRefresh: true);
                         },
                         calendarBuilders: CalendarBuilders(
                           dowBuilder: (context, day) {
